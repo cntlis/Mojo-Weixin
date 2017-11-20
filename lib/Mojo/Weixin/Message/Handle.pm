@@ -293,6 +293,9 @@ sub _parse_sync_data {
                 $msg->{app_title} = $e->{FileName};
                 $msg->{app_url}   = $e->{Url};
             }
+            elsif($e->{MsgType} == 49 and $e->{AppMsgType} == 2000){#转账信息
+                $msg->{format} = "payment";
+            }
             elsif($e->{MsgType} == 42){#名片消息
                 $msg->{format} = "card";
                 $msg->{card_name} = $e->{RecommendInfo}{NickName};
@@ -304,6 +307,7 @@ sub _parse_sync_data {
                 #$msg->{card_avatar} = '';
             }
             elsif($e->{MsgType} == 51){#会话、联系人信息同步
+				#修复Bug Modified By Cntlis
                 if($e->{StatusNotifyCode} == 4 or $e->{StatusNotifyCode} == 2){#联系人、群组信息需要同步
                     my @id = split /,/,$e->{StatusNotifyUserName};
                     my @group_ids;
@@ -315,6 +319,17 @@ sub _parse_sync_data {
                     } 
                     $self->update_group(@group_ids) if @group_ids;
                     $self->update_friend(@friend_ids) if @friend_ids;
+					#对于进入聊天窗口的，要单独发送通知chat_friend  Modified By Cntlis
+					if ($e->{StatusNotifyCode} == 2){
+						for (@id){
+							next if $_ eq $self->user->id;
+							if(not $self->is_group_id($_)){
+								#非群组
+								my @syncfriend= $self->search_friend(id=>$_);
+								$self->emit(chat_friend=>@syncfriend) if @syncfriend;
+							}
+						}
+					}
                 }
                 next;
             }
@@ -438,7 +453,19 @@ sub _parse_sync_data {
                 $self->warn("app message xml parse fail: $@") if $@;
                 $msg->{content} = "[名片]昵称：@{[$msg->{card_name} || '未知']}\n[名片]性别：@{[$msg->{card_sex} || '未知']}\n[名片]位置：@{[$msg->{card_province} || '未知']} @{[$msg->{card_city} || '未知']}\n[名片]头像：@{[$msg->{card_avatar} || '未知']}";
             }
-            $self->message_queue->put(Mojo::Weixin::Message->new($msg)); 
+            elsif($msg->{format} eq 'payment'){
+                #<msg><br/><appmsg appid=\"\" sdkver=\"\"><br/><title><![CDATA[微信转账]]></title><br/><des><![CDATA[X向你转账0.10元。如需收钱，请点此升级至最新版本]]></des><br/><action></action><br/><type>2000</type><br/><content><![CDATA[]]></content><br/><url><![CDATA[https://support.weixin.qq.com/cgi-bin/mmsupport-bin/readtemplate?t=page/common_page__upgrade&text=text001&btn_text=btn_text_0]]></url><br/><thumburl><![CDATA[https://support.weixin.qq.com/cgi-bin/mmsupport-bin/readtemplate?t=page/common_page__upgrade&text=text001&btn_text=btn_text_0]]></thumburl><br/><lowurl></lowurl><br/><extinfo><br/></extinfo><br/><wcpayinfo><br/><paysubtype>1</paysubtype><br/><feedesc><![CDATA[￥0.10]]></feedesc><br/><transcationid><![CDATA[100005020117111600024321086800000000]]></transcationid><br/><transferid><![CDATA[1000050201201711160100300000000]]></transferid><br/><invalidtime><![CDATA[1510910500]]></invalidtime><br/><begintransfertime><![CDATA[1510818700]]></begintransfertime><br/><effectivedate><![CDATA[1]]></effectivedate><br/><pay_memo><![CDATA[]]></pay_memo><br/><br/></wcpayinfo><br/></appmsg><br/></msg>
+                $msg->{content}=~s/<br\/>/\n/g;
+                eval{
+                    require Mojo::DOM;
+                    my $dom = Mojo::DOM->new($msg->{content});
+                    $msg->{content} = $dom->at('msg > appmsg > des')->content;
+                    $msg->{content}=~s/<!\[CDATA\[(.*?)\]\]>/$1/g;
+                };
+                $self->warn("payment message xml parse fail: $@") if $@;
+                $msg->{content} = "[转账](" . $msg->{content} . ")";
+            }
+            $self->message_queue->put(Mojo::Weixin::Message->new($msg));
         }
     }
 
@@ -453,15 +480,17 @@ sub send_message{
     my $object = shift;
     my $content = shift;
     my $callback = shift;
+    my $local_msgid = shift;
     if( ref($object) ne "Mojo::Weixin::Friend" and ref($object) ne "Mojo::Weixin::Group") { 
         $self->error("无效的发送消息对象");
         return;
     }
     my $id = sub{my $r = sprintf "%.3f", rand();$r=~s/\.//g;my $t = $self->now() . $r;return $t}->();
+    $local_msgid= $id if((undef $local_msgid) or ($local_msgid eq ""));
     my $msg = Mojo::Weixin::Message->new(
-        id => $id,
-        uid=> $id,
+        id => $local_msgid,
         content => $content,
+        local_msgid => $local_msgid,
         sender_id => $self->user->id,
         receiver_id => (ref $object eq "Mojo::Weixin::Friend"?$object->id : undef),
         group_id =>(ref $object eq "Mojo::Weixin::Group"?$object->id : undef),
@@ -517,11 +546,12 @@ sub send_media {
                     :   $media_info->{media_type} eq "file"      ?  "[文件]"
                     :   "[文件]"
     ;
-    
+    my $local_msgid = shift;
     my $id = sub{my $r = sprintf "%.3f", rand();$r=~s/\.//g;my $t = $self->now() . $r;return $t}->();
+    $local_msgid= $id if((undef $local_msgid) or ($local_msgid eq ""));
     my $msg = Mojo::Weixin::Message->new(
-        id => $id,
-        uid=> $id,
+        id => $local_msgid,
+        local_msgid => $local_msgid,
         media_id   => $media_info->{media_id},
         media_name => $media_info->{media_name},
         media_type => $media_info->{media_type},

@@ -32,12 +32,14 @@ sub model_init{
         $self->info("更新个人信息成功");
         $self->user(Mojo::Weixin::User->new($user));
         $self->_webwxstatusnotify($self->user->id,3);
-        #$self->emit(update_user=>$self->user);
+        $self->emit(update_user=>$self->user);
     }
+	$self->info("开始获取联系人");
     my $contactinfo = $self->_webwxgetcontact();
     if(not defined $contactinfo){
         $self->error("获取通讯录联系人信息失败");
-        return;
+        #由于微信会封禁掉部分微信号的获取联系人，所以这里如果获取失败，可通过其他方式获取，屏蔽这里	//Modified By Cntlis
+        #return;
     }
     my($friends,$contact_groups) = @$contactinfo;
     if(ref $friends eq "ARRAY" and @$friends>0){
@@ -90,7 +92,8 @@ sub model_init{
         }
         else{
             $self->error("更新群组信息失败");
-            return;
+            #理由同上，微信封接口	Modified By Cntlis
+            #return;
         }
     }
     return 1;

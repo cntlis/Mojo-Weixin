@@ -2,6 +2,7 @@ sub Mojo::Weixin::_logout {
     my $self = shift;
     my $type = shift || 0;
     my $api = "https://". $self->domain ."/cgi-bin/mmwebwx-bin/webwxlogout";
+    $self->info("退出登录");
     my @query_string = (
         redirect    =>  1,
         type        =>  $type,

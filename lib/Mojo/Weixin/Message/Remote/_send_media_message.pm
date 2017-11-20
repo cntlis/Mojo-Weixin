@@ -44,6 +44,8 @@ sub Mojo::Weixin::_send_media_message {
                 f   => 'json',
                 $self->pass_ticket?(pass_ticket => $self->url_escape($self->pass_ticket)):()
             );
+            my $t = sub{my $r = sprintf "%.3f", rand();$r=~s/\.//g;return $self->now() . $r;}->();
+            $msg->local_msgid= $t if ((undef $msg->local_msgid) or ($msg->local_msgid eq ""));
             my $post = {
                 BaseRequest =>  {
                     DeviceID    => $self->deviceid,
@@ -52,10 +54,10 @@ sub Mojo::Weixin::_send_media_message {
                     Uin         => $self->wxuin, 
                 },
                 Msg             => {
-                    ClientMsgId     =>  $msg->uid,
+                    ClientMsgId     =>  $msg->local_msgid,
                     FromUserName    =>  $msg->sender_id,
                     MediaId         =>  (split ":",$msg->media_id)[0],
-                    LocalID         =>  $msg->uid,
+                    LocalID         =>  $msg->local_msgid,
                     ToUserName      =>  ($msg->type eq "group_message"?$msg->group_id:$msg->receiver_id),
                     #Type            =>  $Mojo::Weixin::Const::KEY_MAP_MEDIA_CODE{$msg->media_type} || 6,
                     Type            =>  $msg->media_code || $Mojo::Weixin::Const::KEY_MAP_MEDIA_CODE{$msg->media_type} || 6,
