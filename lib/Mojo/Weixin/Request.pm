@@ -86,9 +86,9 @@ sub _http_request{
         json                =>  0,  
         blocking            =>  0,
         ua_retry_times      =>  $self->ua_retry_times,
-        ua_connect_timeout  =>  $self->ua_connect_timeout,
-        ua_request_timeout  =>  $self->ua_request_timeout,
-        ua_inactivity_timeout => $self->ua_inactivity_timeout,
+        #ua_connect_timeout  =>  $self->ua_connect_timeout,
+        #ua_request_timeout  =>  $self->ua_request_timeout,
+        #ua_inactivity_timeout => $self->ua_inactivity_timeout,
         ua_debug            =>  $self->ua_debug,
         ua_debug_res_body   =>  $self->ua_debug_res_body,
         ua_debug_req_body   =>  $self->ua_debug_req_body

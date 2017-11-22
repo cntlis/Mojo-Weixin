@@ -37,11 +37,12 @@ has ua_debug_res_body   => sub{$_[0]->ua_debug};
 has ua_retry_times          => 5;
 has ua_connect_timeout      => 10;
 has ua_request_timeout      => 120;
-has ua_inactivity_timeout   => 120;
+has ua_inactivity_timeout   => 60;
 has ua  => sub {
     Mojo::UserAgent->new(
         connect_timeout=>$_[0]->ua_connect_timeout,
         request_timeout=>$_[0]->ua_request_timeout,
+		max_connections=>5,
         inactivity_timeout=>$_[0]->ua_inactivity_timeout,
     )
 };

@@ -21,6 +21,7 @@ use Mojo::Weixin::Const;
 sub model_init{
     my $self = shift;
     $self->state('updating');
+	$self->info('开始使用Agent:'. $self->http_agent);
     $self->info("获取联系人信息...");
     my $initinfo = $self->_webwxinit();
     if(not defined $initinfo){
@@ -103,6 +104,7 @@ sub update_user {
 }
 sub update_friend{
     my $self = shift;
+	#$self->info("调用了update_friend");
     my @friend_ids = map {ref $_ eq "Mojo::Weixin::Friend"?$_->id:$_} @_;
     if(@friend_ids){
         my @return = $self->_webwxbatchgetcontact_friend(@friend_ids);
@@ -175,6 +177,13 @@ sub add_friend{
     $self->die("不支持的数据类型\n") if ref $friend ne "Mojo::Weixin::Friend";
     $self->emit(new_friend=>$friend) if $self->_add($self->friend,$friend) == 1;
 }
+#不发送日志的添加好友
+sub add_friend_withnoemit{
+    my $self = shift;
+    my $friend = shift;
+    $self->die("不支持的数据类型\n") if ref $friend ne "Mojo::Weixin::Friend";
+    $self->_add($self->friend,$friend);
+}
 sub remove_friend{
     my $self = shift;
     my $friend = shift;
@@ -186,6 +195,13 @@ sub add_group{
     my $group = shift;
     $self->die("不支持的数据类型\n") if ref $group ne "Mojo::Weixin::Group";
     $self->emit(new_group=>$group) if $self->_add($self->group,$group) == 1;
+}
+#不发送日志的添加群组
+sub add_group_withnoemit{
+    my $self = shift;
+    my $group = shift;
+    $self->die("不支持的数据类型\n") if ref $group ne "Mojo::Weixin::Group";
+    $self->_add($self->group,$group);
 }
 sub remove_group{
     my $self = shift;

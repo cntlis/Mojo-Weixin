@@ -45,7 +45,7 @@ sub Mojo::Weixin::_send_media_message {
                 $self->pass_ticket?(pass_ticket => $self->url_escape($self->pass_ticket)):()
             );
             my $t = sub{my $r = sprintf "%.3f", rand();$r=~s/\.//g;return $self->now() . $r;}->();
-            $msg->local_msgid= $t if ((undef $msg->local_msgid) or ($msg->local_msgid eq ""));
+            $msg->local_msgid= $t if ((!(defined $msg->local_msgid)) or ($msg->local_msgid eq ""));
             my $post = {
                 BaseRequest =>  {
                     DeviceID    => $self->deviceid,

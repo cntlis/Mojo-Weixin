@@ -5,7 +5,7 @@ sub Mojo::Weixin::_send_text_message {
     my @query_string =();
     push @query_string,(pass_ticket     => $self->url_escape($self->pass_ticket)) if $self->pass_ticket;
     my $t = sub{my $r = sprintf "%.3f", rand();$r=~s/\.//g;return $self->now() . $r;}->();
-    $msg->local_msgid= $t if ((undef $msg->local_msgid) or ($msg->local_msgid eq ""));
+    $msg->local_msgid= $t if ((!(defined $msg->local_msgid)) or ($msg->local_msgid eq ""));
 	#开放client_msgid	Modified By Cntlis
 	#可以发送特殊内容，譬如名片 Modified By Cntlis
 	my $msgtype= 1;

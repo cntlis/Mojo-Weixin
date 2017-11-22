@@ -131,8 +131,8 @@ sub _parse_synccheck_data{
             $self->_synccheck_error_count(++$c);
         }
         else{
-            $self->relogin();
-            return;
+            #$self->relogin();
+            #return;
         }
     }
 }
@@ -486,7 +486,7 @@ sub send_message{
         return;
     }
     my $id = sub{my $r = sprintf "%.3f", rand();$r=~s/\.//g;my $t = $self->now() . $r;return $t}->();
-    $local_msgid= $id if((undef $local_msgid) or ($local_msgid eq ""));
+    $local_msgid= $id if((!(defined $local_msgid)) or ($local_msgid eq ""));
     my $msg = Mojo::Weixin::Message->new(
         id => $local_msgid,
         content => $content,
@@ -548,7 +548,7 @@ sub send_media {
     ;
     my $local_msgid = shift;
     my $id = sub{my $r = sprintf "%.3f", rand();$r=~s/\.//g;my $t = $self->now() . $r;return $t}->();
-    $local_msgid= $id if((undef $local_msgid) or ($local_msgid eq ""));
+    $local_msgid= $id if((!(defined $local_msgid)) or ($local_msgid eq ""));
     my $msg = Mojo::Weixin::Message->new(
         id => $local_msgid,
         local_msgid => $local_msgid,
